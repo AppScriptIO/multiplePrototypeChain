@@ -1,5 +1,5 @@
 {
-    "name": "multiplePrototypeChain",
+    "name": "@dependency/multiplePrototypeChain",
     "version": "0.1.0",
-    "main": "entrypoint.js"
+    "main": "./source/entrypoint.js"
 }

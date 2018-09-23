@@ -1,5 +1,5 @@
 import assert from 'assert'
-import {MultiplePrototypeChain} from './entrypoint.js'
+import { MultiplePrototypeChain } from './entrypoint.js'
 
 describe('Multiple Prototype Chain creation', () => {
     beforeEach(() => {
