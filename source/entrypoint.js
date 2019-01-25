@@ -12,7 +12,7 @@ let self = class MultiplePrototypeChain {
                 instance = self.insertObjectToPrototypeChain({ 
                     prototypeChain: instance,
                     objectToAdd: contextInstance,
-                    beforePrototype: contextInstance.__proto__
+                    beforePrototype: contextInstance.__proto__.__proto__
                 })
                 return instance
             }             
@@ -86,7 +86,7 @@ let self = class MultiplePrototypeChain {
             previousPrototype = nextPrototype
             nextPrototype = nextPrototype.__proto__
         }
-        if(!nextPrototype) return false // if no appropriate insertion position was found.
+        if(!nextPrototype) throw new Error('• Couldn`t add object to prototype chain. No matching "beforePrototype" was found.') // if no appropriate insertion position was found.
         // create pointerPrototype to add between the previous and next prototypes.
         let pointerPrototype = Object.create(nextPrototype)
         if(!pointerPrototype.hasOwnProperty('delegatedPrototype')) {
@@ -95,7 +95,8 @@ let self = class MultiplePrototypeChain {
         pointerPrototype = new Proxy(pointerPrototype, self.handlerMultiplePrototypeChainPattern({ 
             delegatedPrototype: objectToAdd
         }))
-        Object.setPrototypeOf(previousPrototype, pointerPrototype)            
+        Object.setPrototypeOf(previousPrototype, pointerPrototype)    
+        console.log(prototypeChain)        
         return prototypeChain
     }
 
