@@ -1,5 +1,12 @@
 {
     "name": "@dependency/multiplePrototypeChain",
     "version": "0.1.0",
-    "main": "./source/entrypoint.js"
+    "main": "./source/script.js",
+    "devDependencies": {
+        "del": "^3.0.0",
+        "@dependency/scriptManager": "https://github.com/AppScriptIO/scriptManager",
+        "@dependency/deploymentScript": "https://github.com/AppScriptIO/deploymentScript",
+        "@dependency/javascriptTranspilation": "https://github.com/AppScriptIO/javascriptTranspilation"
+
+    }
 }

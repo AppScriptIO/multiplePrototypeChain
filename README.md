@@ -1,1 +1,1 @@
-# multiplePrototypeChain
+./documentation/information.md
