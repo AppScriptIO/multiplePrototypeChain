@@ -1,0 +1,1 @@
+- Change repository name to "multiplePrototypeChainDelegation" as opposed to using 'inheritance' term.
