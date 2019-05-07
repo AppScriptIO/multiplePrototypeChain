@@ -1,6 +1,5 @@
 let self = class MultiplePrototypeChain {
 
-
     static newChainOnInstanceCreation({ 
         Class, // wrap constructor of Class and create a new chain for each new instance.
         contextInstance // The instnace to be added to the chain.
