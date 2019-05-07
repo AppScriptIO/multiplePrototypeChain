@@ -29,7 +29,6 @@ obj.a; // 3           (inherited from o3)
 // Property enumeration
 for(var p in obj) p; // "c", "b", "a"
 */
-
 // _________________________
 
 /*const a = {};
@@ -46,10 +45,6 @@ inheritsMultipleObjects(e, [a, b]);
 inheritsMultipleObjects(g, [e, f, d]);
 
 console.log(g.a); // 1*/
-
-
-
-
 
 /*// C ->> B -> A
 
@@ -80,10 +75,6 @@ console.log(x.AA());
 console.log(x.BB());
 console.log(x.CC());*/
 
-
-
-
-
 /*// C -> B ->> A
 
 const A = {
@@ -113,10 +104,6 @@ console.log(x.AA());
 console.log(x.BB());
 console.log(x.CC());*/
 
-
-
-
-
 /*// C ->> B ->> A
 
 const A = {
@@ -144,3 +131,4 @@ console.log(x);
 console.log(x.AA());
 console.log(x.BB());
 console.log(x.CC());*/
+"use strict";
