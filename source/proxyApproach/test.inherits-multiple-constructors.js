@@ -36,10 +36,6 @@ console.log(c.A);
 console.log(c.B);
 console.log(c.C);*/
 
-
-
-
-
 /*// C -> B ->> A
 
 class A {
@@ -78,10 +74,6 @@ console.log(c.A);
 console.log(c.B);
 console.log(c.C);*/
 
-
-
-
-
 /*// C ->> B ->> A
 
 class _A {
@@ -119,3 +111,4 @@ console.log(c);
 console.log(c.A);
 console.log(c.B);
 console.log(c.C);*/
+"use strict";

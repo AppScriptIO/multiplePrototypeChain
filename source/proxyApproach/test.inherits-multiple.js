@@ -48,10 +48,6 @@ console.log(c.AA());
 console.log(c.BB());
 console.log(c.CC());*/
 
-
-
-
-
 /*// C -> B ->> A
 
 class A {
@@ -101,11 +97,6 @@ console.log(c);
 console.log(c.AA());
 console.log(c.BB());
 console.log(c.CC());*/
-
-
-
-
-
 
 /*// C ->> B ->> A
 
@@ -157,3 +148,4 @@ console.log(c);
 console.log(c.AA());
 console.log(c.BB());
 console.log(c.CC());*/
+"use strict";
