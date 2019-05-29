@@ -45,7 +45,10 @@ Dynamic in the sense that each instance delegates to a specified prototype chain
 - Prototype chain delegation => wires the prototype chain for the Object.
 
 ## Approach: 
-The created object will delegate to a proxy that will affect the delegated objects/prototypes involved, not only on the immediate parent of the instance but also in upper hierarchies.
+The created object will delegate to a proxy that will affect the delegated objects/prototypes involved, not only on the immediate parent of the instance but also in upper hierarchies (in case needed).
+- In contrast to affected the upper hierarchies, an opposite approach where each object is responsible for it's own delegation. This allows for simpler delegation algorithm and dynamic hierarchy levels. 
+- Multiple delegation is an intialization step and functionality can be isolated.
+- Techniquely the target is wrapped in a proxy, that contains the functionality for multiple delegation lookup.
 
 
 ___
