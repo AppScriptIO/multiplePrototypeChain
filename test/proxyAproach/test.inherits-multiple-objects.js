@@ -2,7 +2,7 @@
 
 // Creating objects
 var o1, o2, o3,
-    obj = inheritsMultipleObjects({
+    obj = delegateToMultipleObject({
       baseObject: Object.create(null), 
       superObjects: [ o1={a:1}, o2={b:2}, o3={a:3, b:3} ]
     })
@@ -42,8 +42,8 @@ const g = {};
 
 inheritsObject(f, c);
 
-inheritsMultipleObjects(e, [a, b]);
-inheritsMultipleObjects(g, [e, f, d]);
+delegateToMultipleObject(e, [a, b]);
+delegateToMultipleObject(g, [e, f, d]);
 
 console.log(g.a); // 1*/
 
@@ -71,7 +71,7 @@ const C = {
     return 'CC';
   }
 };
-inheritsMultipleObjects(C, [B]);
+delegateToMultipleObject(C, [B]);
 
 
 const x = Object.create(C);
@@ -97,7 +97,7 @@ const B = {
     return 'BB';
   }
 };
-inheritsMultipleObjects(B, [A]);
+delegateToMultipleObject(B, [A]);
 
 const C = {
   CC() {
@@ -130,14 +130,14 @@ const B = {
     return 'BB';
   }
 };
-inheritsMultipleObjects(B, [A]);
+delegateToMultipleObject(B, [A]);
 
 const C = {
   CC() {
     return 'CC';
   }
 };
-inheritsMultipleObjects(C, [B]);
+delegateToMultipleObject(C, [B]);
 
 const x = Object.create(C);
 console.log(x);
