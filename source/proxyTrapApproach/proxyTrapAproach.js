@@ -1,5 +1,7 @@
 /** Support multiple delegated prototype property lookup, where the target's prototype is overwritten by a proxy. */
-export function delegateToMultipleObject({ targetObject, delegationList, proxiedPrototypeType = 'object' }) {
+export function delegateToMultipleObject({ targetObject, delegationList = [], proxiedPrototypeType = 'object' }) {
+  if (delegationList.length == 0) return
+
   /*     
   There are more traps available, which are not used
   The getPrototypeOf trap could be added, but there is no proper way to return the multiple prototypes. This implies instanceof won't work neither. Therefore, I let it get the prototype of the target, which initially is null.
@@ -61,6 +63,7 @@ export function delegateToMultipleObject({ targetObject, delegationList, proxied
       proxyTarget = Object.create(null)
       break
   }
+  proxyTarget[Symbol('metadata')] = { type: 'Multiple delegation proxy', delegationList } // debugging - when console logging it will mark object as proxy and in inspector debugging too.
   let proxiedPrototype = new Proxy(proxyTarget, proxyHandler)
   // Delegate to proxy that will handle and redirect fundamental operations to the appropriate object.
   Object.setPrototypeOf(targetObject, proxiedPrototype)
