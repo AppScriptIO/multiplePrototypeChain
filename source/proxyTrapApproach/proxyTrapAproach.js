@@ -6,7 +6,8 @@ const $ = {
   setter: Symbol('MultipleDelegation: setter'),
   // debugging purposes
   metadata: Symbol('metadata'),
-  target: Symbol('non proxied target'), // the original target which should be wrapped with proxy.
+  // this symbol must be global to allow multiple versions of the same module to work together.
+  target: Symbol.for('MultipleDelegation: non proxied target'), // the original target which should be wrapped with proxy.
 }
 export class MultipleDelegation {
   // Symbol keys of multiple delegation proxy functionality.
@@ -81,10 +82,9 @@ export class MultipleDelegation {
     },
   }
 
-  // check if instance is of MultipleDelegation
-  static isInstanceof(instance) {
-    // check if current prototype is not a MultipleDelegation instance. Note: `instanceof` native JS cannot be proxy trapped and depends on `getPrototypeOf` which is proxy trapped in this implementaion, therefore it cannot be used to check constructor.
-    return instance[$.target] instanceof MultipleDelegation // check constructor on the non proxied target.
+  // Trap `instanceof` - check if instance is of MultipleDelegation
+  static [Symbol.hasInstance](instance) {
+    return Boolean(instance[$.target]) // check constructor on the non proxied target.
   }
 
   constructor() {
@@ -108,7 +108,7 @@ export class MultipleDelegation {
     if (delegationList.length == 0) return
     let currentPrototype = targetObject |> Object.getPrototypeOf,
       proxiedPrototype
-    if (!MultipleDelegation.isInstanceof(currentPrototype)) {
+    if (!(currentPrototype instanceof MultipleDelegation)) {
       let proxied = new MultipleDelegation()
       proxiedPrototype = proxied.proxiedPrototype
       if (currentPrototype) proxied.target[$.setter](currentPrototype)

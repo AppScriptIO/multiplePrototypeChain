@@ -1,6 +1,6 @@
 {
     "name": "@dependency/multiplePrototypeDelegation",
-    "version": "1.0.7",
+    "version": "1.0.8",
     "main": "./entrypoint/programmaticAPI",
     "devDependencies": {
         "@dependency/deploymentScript": "https://github.com/AppScriptIO/deploymentScript#semver:^1.x.x",
