@@ -14,8 +14,6 @@ export class MultipleDelegation {
 
   /*     
   There are more traps available, which are not used
-  The getPrototypeOf trap could be added, but there is no proper way to return the multiple prototypes. This implies instanceof won't work neither. Therefore, I let it get the prototype of the target, which initially is null.
-  The setPrototypeOf trap could be added and accept an array of objects, which would replace the prototypes. This is left as an exercice for the reader. Here I just let it modify the prototype of the target, which is not much useful because no trap uses the target.
   The deleteProperty trap is a trap for deleting own properties. The proxy represents the inheritance, so this wouldn't make much sense. I let it attempt the deletion on the target, which should have no property anyway.
   The isExtensible trap is a trap for getting the extensibility. Not much useful, given that an invariant forces it to return the same extensibility as the target. So I just let it redirect the operation to the target, which will be extensible.
   The apply and construct traps are traps for calling or instantiating. They are only useful when the target is a function or a constructor.
@@ -70,9 +68,27 @@ export class MultipleDelegation {
     // The preventExtensions and defineProperty traps are only included to prevent these operations from modifying the proxy target. Otherwise we could end up breaking some proxy invariants.
     preventExtensions: target => false,
     defineProperty: (target, prop, desc) => false,
+    /** The getPrototypeOf trap could be added, but there is no proper way to return the multiple prototypes. This implies instanceof won't work neither. Therefore,
+     * Origianlly befor ethis implementation, I let it get the prototype of the target, which initially is null.
+     */
+    getPrototypeOf: target => {
+      return target[$.list] // return array of delegated prototypes
+    },
+    // The setPrototypeOf trap could be added and accept an array of objects, which would replace the prototypes. This is left as an exercice for the reader. Here I just let it modify the prototype of the target, which is not much useful because no trap uses the target.
+    setPrototypeOf: (target, prototype) => {
+      target[$.setter](prototype) // add prototype to delegated list of prototypes
+      return true
+    },
+  }
+
+  // check if instance is of MultipleDelegation
+  static isInstanceof(instance) {
+    // check if current prototype is not a MultipleDelegation instance. Note: `instanceof` native JS cannot be proxy trapped and depends on `getPrototypeOf` which is proxy trapped in this implementaion, therefore it cannot be used to check constructor.
+    return instance[$.target] instanceof MultipleDelegation // check constructor on the non proxied target.
   }
 
   constructor() {
+    // The target is not meant to be accessable externally through the wrapper proxy.
     let target = this
     let proxiedPrototype = new Proxy(target, MultipleDelegation.proxyHandler)
     // debugging - when console logging it will mark object as proxy and in inspector debugging too.
@@ -92,8 +108,7 @@ export class MultipleDelegation {
     if (delegationList.length == 0) return
     let currentPrototype = targetObject |> Object.getPrototypeOf,
       proxiedPrototype
-    // check if current prototype is not a MultipleDelegation instance
-    if (!(currentPrototype instanceof MultipleDelegation)) {
+    if (!MultipleDelegation.isInstanceof(currentPrototype)) {
       let proxied = new MultipleDelegation()
       proxiedPrototype = proxied.proxiedPrototype
       if (currentPrototype) proxied.target[$.setter](currentPrototype)
@@ -102,7 +117,6 @@ export class MultipleDelegation {
     } else {
       proxiedPrototype = currentPrototype
     }
-
     // add delegation prototypes to multiple delelgation proxy.
     proxiedPrototype[$.target][$.setter](delegationList)
   }
