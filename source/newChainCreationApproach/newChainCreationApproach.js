@@ -96,7 +96,6 @@ let self = class MultiplePrototypeChain {
       }),
     )
     Object.setPrototypeOf(previousPrototype, pointerPrototype)
-    console.log(prototypeChain)
     return prototypeChain
   }
 }

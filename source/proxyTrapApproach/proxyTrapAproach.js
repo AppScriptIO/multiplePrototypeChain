@@ -56,6 +56,8 @@ export class MultipleDelegation {
     },
     // The getOwnPropertyDescriptor trap is a trap for Object.getOwnPropertyDescriptor(). Making all enumerable properties appear like own properties in the ownKeys trap is not enough, for...in loops will get the descriptor to check if they are enumerable. So I use find to find the first prototype which contains that property, and I iterate its prototypical chain until I find the property owner, and I return its descriptor. If no prototype contains the property, I return undefined. The descriptor is modified to make it configurable, otherwise we could break some proxy invariants.
     getOwnPropertyDescriptor(target, prop) {
+      debugger
+      console.log(prop)
       let delegationList = target[$.getter]()
       function getDesc(obj, prop) {
         var desc = Object.getOwnPropertyDescriptor(obj, prop)
@@ -106,19 +108,19 @@ export class MultipleDelegation {
   /** Support multiple delegated prototype property lookup, where the target's prototype is overwritten by a proxy. */
   static addDelegation({ targetObject, delegationList = [] }) {
     if (delegationList.length == 0) return
-    let currentPrototype = targetObject |> Object.getPrototypeOf,
-      proxiedPrototype
+
+    let currentPrototype = targetObject |> Object.getPrototypeOf
+    if (delegationList.includes(currentPrototype)) delegationList.unshift(currentPrototype)
+
     if (!(currentPrototype instanceof MultipleDelegation)) {
-      let proxied = new MultipleDelegation()
-      proxiedPrototype = proxied.proxiedPrototype
-      if (currentPrototype) proxied.target[$.setter](currentPrototype)
+      let multipleDelegation = new MultipleDelegation()
       // Delegate to proxy that will handle and redirect fundamental operations to the appropriate object.
-      Object.setPrototypeOf(targetObject, proxiedPrototype)
-    } else {
-      proxiedPrototype = currentPrototype
+      Object.setPrototypeOf(targetObject, multipleDelegation)
     }
+
+    let multipleDelegation = Object.getPrototypeOf(targetObject) // instance of MultipleDelegation class that will be used as the prototype of the target object
     // add delegation prototypes to multiple delelgation proxy.
-    proxiedPrototype[$.target][$.setter](delegationList)
+    multipleDelegation.proxiedPrototype[$.target][$.setter](delegationList)
   }
 }
 

@@ -1,9 +1,14 @@
 import assert from 'assert'
-import { MultiplePrototypeChain } from '../source/script.js'
+import { assert as chaiAssertion } from 'chai'
+import util from 'util'
+import path from 'path'
+import filesystem from 'fs'
 
-describe('Multiple Prototype Chain creation', () => {
-  beforeEach(() => {})
-  describe('Create new chain with proxied prototypes', () => {
+import { MultiplePrototypeChain, MultipleDelegation } from '../source/script.js'
+
+suite('Multiple Prototype Chain creation', () => {
+  suiteSetup(() => {})
+  suite('Create new chain with proxied prototypes', () => {
     class Superclass {}
     Superclass.prototype.meta = { Class: 'Superclass' }
     class Class extends Superclass {}
@@ -15,7 +20,7 @@ describe('Multiple Prototype Chain creation', () => {
     oldInstance.x = 'x'
     let newInstance = MultiplePrototypeChain.createUniqueProtoChain({ object: oldInstance })
 
-    it('Get properties - Preserve properties of original instance and original prototypes', () => {
+    test('Get properties - Preserve properties of original instance and original prototypes', () => {
       assert.strictEqual(newInstance.x, oldInstance.x)
       assert.strictEqual(newInstance.meta.Class, 'Subclass')
       assert.strictEqual(newInstance.__proto__.meta.Class, 'Subclass')
@@ -23,18 +28,18 @@ describe('Multiple Prototype Chain creation', () => {
       assert.strictEqual(newInstance.__proto__.__proto__.__proto__.meta.Class, 'Superclass')
     })
 
-    it('Set properties - Should be able to set properties through the proxy', () => {
+    test('Set properties - Should be able to set properties through the proxy', () => {
       newInstance.t = 't'
       assert.strictEqual(newInstance.t, 't')
       assert.strictEqual(newInstance.delegatedPrototype.t, 't')
     })
 
-    it('In operator should check in the delegatedPrototype', () => {
+    test('In operator should check in the delegatedPrototype', () => {
       newInstance.b = 'b'
       assert.strictEqual('b' in newInstance, true)
     })
 
-    it('create new prototypes with corresponding delegatedPrototypes values equal to original proto chain', () => {
+    test('create new prototypes with corresponding delegatedPrototypes values equal to original proto chain', () => {
       // Subclass
       assert.strictEqual(newInstance.__proto__.delegatedPrototype, oldInstance.__proto__)
       // Class
@@ -47,7 +52,7 @@ describe('Multiple Prototype Chain creation', () => {
       assert.strictEqual(newInstance.__proto__.__proto__.__proto__.__proto__.__proto__, oldInstance.__proto__.__proto__.__proto__.__proto__.__proto__)
     })
   })
-  describe('Insert object to prototypechain', () => {
+  suite('Insert object to prototypechain', () => {
     class Superclass {}
     Superclass.prototype.meta = { Class: 'Superclass' }
     class Class extends Superclass {}
@@ -70,12 +75,34 @@ describe('Multiple Prototype Chain creation', () => {
       beforePrototype: Superclass.prototype,
     })
 
-    it('Object should be added as delegatedPrototype inside a pointerPrototype in specified place preserving previous chain prototypes', () => {
+    test('Object should be added as delegatedPrototype inside a pointerPrototype in specified place preserving previous chain prototypes', () => {
       assert.strictEqual(newInstance.__proto__.delegatedPrototype, Subclass.prototype)
       assert.strictEqual(newInstance.__proto__.__proto__.delegatedPrototype, Class.prototype)
       assert.strictEqual(newInstance.__proto__.__proto__.__proto__.delegatedPrototype, objectToAdd)
       assert.strictEqual(newInstance.__proto__.__proto__.__proto__.__proto__.delegatedPrototype, Superclass.prototype)
       assert.strictEqual(newInstance.__proto__.__proto__.__proto__.__proto__.__proto__, Superclass.prototype.__proto__)
+    })
+  })
+
+  suite('Accessing property through getters (prevent infinite getter lookup)', () => {
+    let instance = { label: 'instance' },
+      parent = { label: 'parent' }
+
+    Object.setPrototypeOf(instance, parent)
+    /**
+     *  1. current prototype shouldn't be added twice.
+     *  2. In case duplicate prototypes are added, property lookup shouldn't cause infinite lookup errors.
+     */
+    MultipleDelegation.addDelegation({ targetObject: instance, delegationList: [parent, parent, instance, instance] })
+
+    test('Ensure no infinite lookup of property in the hierarchy is being executed', () => {
+      try {
+        console.log(instance)
+        console.log(instance.label)
+      } catch (error) {
+        console.log('• Error: Getter lookup caused infinite loop.')
+        throw error
+      }
     })
   })
 })
