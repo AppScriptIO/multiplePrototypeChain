@@ -9,7 +9,7 @@ const ownConfig = {
     },
     get distribution() {
       return path.join(ownConfig.directory.root, './distribution')
-    }, 
+    },
     get test() {
       return path.join(ownConfig.directory.root, './test')
     },
@@ -32,9 +32,7 @@ const ownConfig = {
   },
   build: {
     get compile() {
-      return [
-        path.relative(ownConfig.directory.root, ownConfig.directory.source),
-      ]
+      return [path.relative(ownConfig.directory.root, ownConfig.directory.source)]
     },
     repositoryURL: 'https://github.com/AppScriptIO/multiplePrototypeDelegation',
   },
