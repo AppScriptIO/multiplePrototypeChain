@@ -1,18 +1,15 @@
-// the 'Reference' of functionality symnol keys
-const $ = {
+// expose Symbol keys of multiple delegation proxy functionality. - the 'Reference' of functionality symnol keys
+export const $ = {
   // delegation list of prototypes
   list: Symbol('MultipleDelegation: list'),
   getter: Symbol('MultipleDelegation: getter'),
   setter: Symbol('MultipleDelegation: setter'),
-  // debugging purposes
-  metadata: Symbol('metadata'),
   // this symbol must be global to allow multiple versions of the same module to work together.
   target: Symbol.for('MultipleDelegation: non proxied target'), // the original target which should be wrapped with proxy.
+  metadata: Symbol('metadata'), // debugging purposes
 }
-export class MultipleDelegation {
-  // Symbol keys of multiple delegation proxy functionality.
-  static Reference = $
 
+export class MultipleDelegation {
   /*     
   There are more traps available, which are not used
   The deleteProperty trap is a trap for deleting own properties. The proxy represents the inheritance, so this wouldn't make much sense. I let it attempt the deletion on the target, which should have no property anyway.
@@ -25,18 +22,18 @@ export class MultipleDelegation {
       // allow access to target's MultipleDelegation Functionalities to get the list of delgations.
       if (key in target) return target[key]
 
-      let delegationList = target[$.getter]()
+      let delegationList = target[$.list]
       const parent = delegationList.find(p => Reflect.has(p, key))
       return parent ? Reflect.get(parent, key, receiver) : void 0 // because `undefined` is a global variable and not a reserved word in JS. void simply insures the return of undefined.
     },
     // The has trap is a trap for the in operator. I use some to check if at least one prototype contains the property.
     has: (target, key) => {
-      let delegationList = target[$.getter]()
+      let delegationList = target[$.list]
       return delegationList.some(p => Reflect.has(p, key))
     },
     // The set trap is a trap for setting property values. I use find to find the first prototype which contains that property, and I call its setter on the appropriate receiver. If there is no setter or no prototype contains the property, the value is defined on the appropriate receiver. This is handled by Reflect.set.
     set(target, prop, value, receiver) {
-      let delegationList = target[$.getter]()
+      let delegationList = target[$.list]
       var obj = delegationList.find(obj => prop in obj)
       return Reflect.set(obj || Object.create(null), prop, value, receiver)
     },
@@ -49,22 +46,23 @@ export class MultipleDelegation {
     },
     // The ownKeys trap is a trap for Object.getOwnPropertyNames(). Since ES7, for...in loops keep calling [[GetPrototypeOf]] and getting the own properties of each one. So in order to make it iterate the properties of all prototypes, I use this trap to make all enumerable inherited properties appear like own properties.
     ownKeys(target) {
-      let delegationList = target[$.getter]()
+      let delegationList = target[$.list]
       var hash = Object.create(null)
       for (var obj of delegationList) for (var p in obj) if (!hash[p]) hash[p] = true
       return Object.getOwnPropertyNames(hash)
     },
     // The getOwnPropertyDescriptor trap is a trap for Object.getOwnPropertyDescriptor(). Making all enumerable properties appear like own properties in the ownKeys trap is not enough, for...in loops will get the descriptor to check if they are enumerable. So I use find to find the first prototype which contains that property, and I iterate its prototypical chain until I find the property owner, and I return its descriptor. If no prototype contains the property, I return undefined. The descriptor is modified to make it configurable, otherwise we could break some proxy invariants.
     getOwnPropertyDescriptor(target, prop) {
-      debugger
-      console.log(prop)
-      let delegationList = target[$.getter]()
-      function getDesc(obj, prop) {
-        var desc = Object.getOwnPropertyDescriptor(obj, prop)
-        return desc || (obj = Object.getPrototypeOf(obj) ? getDesc(obj, prop) : void 0)
-      }
+      let delegationList = target[$.list]
+
       var obj = delegationList.find(obj => prop in obj)
-      var desc = obj ? getDesc(obj, prop) : void 0
+      let desc = undefined
+      if (obj)
+        while (!desc && obj != null) {
+          desc = Object.getOwnPropertyDescriptor(obj, prop) // try retrieving descriptor on current obj
+          obj = Object.getPrototypeOf(obj) // lookup in parent hierarchy
+        }
+
       if (desc) desc.configurable = true
       return desc
     },
@@ -89,22 +87,6 @@ export class MultipleDelegation {
     return Boolean(instance[$.target]) // check constructor on the non proxied target.
   }
 
-  constructor() {
-    // The target is not meant to be accessable externally through the wrapper proxy.
-    let target = this
-    let proxiedPrototype = new Proxy(target, MultipleDelegation.proxyHandler)
-    // debugging - when console logging it will mark object as proxy and in inspector debugging too.
-    target[$.metadata] = {
-      type: 'Multiple delegation proxy',
-      get delegationList() {
-        return target[$.getter]()
-      },
-    }
-    target[$.list] = [] // initialize multiple delegaiton list property.
-    target[$.target] = target
-    return { proxiedPrototype, target }
-  }
-
   /** Support multiple delegated prototype property lookup, where the target's prototype is overwritten by a proxy. */
   static addDelegation({ targetObject, delegationList = [] }) {
     if (delegationList.length == 0) return
@@ -113,26 +95,38 @@ export class MultipleDelegation {
     if (delegationList.includes(currentPrototype)) delegationList.unshift(currentPrototype)
 
     if (!(currentPrototype instanceof MultipleDelegation)) {
-      let multipleDelegation = new MultipleDelegation()
+      let { proxy } = new MultipleDelegation()
       // Delegate to proxy that will handle and redirect fundamental operations to the appropriate object.
-      Object.setPrototypeOf(targetObject, multipleDelegation)
+      Object.setPrototypeOf(targetObject, proxy)
     }
 
-    let multipleDelegation = Object.getPrototypeOf(targetObject) // instance of MultipleDelegation class that will be used as the prototype of the target object
+    let multipleDelegationProxy = targetObject |> Object.getPrototypeOf // instance of MultipleDelegation class that will be used as the prototype of the target object
     // add delegation prototypes to multiple delelgation proxy.
-    multipleDelegation.proxiedPrototype[$.target][$.setter](delegationList)
+    multipleDelegationProxy[$.target][$.setter](delegationList)
   }
-}
 
-Object.assign(MultipleDelegation.prototype, {
+  // set prototype
   [$.setter](prototype) {
     if (!Array.isArray(prototype)) prototype = [prototype]
     this[$.list] = [...this[$.list], ...prototype] // Note: 'this' should be the original target not the proxy.
-  },
-  [$.getter]() {
-    return this[$.list]
-  },
-})
+  }
+
+  constructor() {
+    // this = The target is not meant to be accessable externally through the wrapper proxy.
+    let target = this
+    target[$.list] = [] // initialize multiple delegaiton list property.
+    target[$.target] = target
+    let proxy = new Proxy(target, MultipleDelegation.proxyHandler)
+    // debugging - when console logging it will mark object as proxy and in inspector debugging too.
+    target[$.metadata] = {
+      type: 'Multiple delegation proxy',
+      get delegationList() {
+        return target[$.list]
+      },
+    }
+    return { proxy, target: target }
+  }
+}
 
 // implement multiple super constructors with ability to pass unique arguments for each during instance creation.
 export function inheritsMultipleConstructors({ BaseCtor, SuperCtors }) {
