@@ -92,7 +92,7 @@ export class MultipleDelegation {
     if (delegationList.length == 0) return
 
     let currentPrototype = targetObject |> Object.getPrototypeOf
-    if (delegationList.includes(currentPrototype)) delegationList.unshift(currentPrototype)
+    if (!delegationList.includes(currentPrototype)) delegationList.unshift(currentPrototype)
 
     if (!(currentPrototype instanceof MultipleDelegation)) {
       let { proxy } = new MultipleDelegation()
