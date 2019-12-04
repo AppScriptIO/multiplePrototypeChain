@@ -101,10 +101,21 @@ export const proxyHandler = {
   },
 
   // The get trap is a trap for getting property values. I use find to find the first prototype which contains that property, and I return the value, or call the getter on the appropriate receiver. This is handled by Reflect.get. If no prototype contains the property, I return undefined.
-  get(target, key, receiver) {
+  get(target, key, proxy /*proxy of target*/) {
     if (key in target) return target[key] // allow access to target's MultipleDelegation Functionalities to get the list of delgations.
-    const parent = target[$.list].find(object => key in object)
-    return parent ? parent[key] : void 0 // because `undefined` is a global variable and not a reserved word in JS. void simply insures the return of undefined.
+
+    // find the object that has the property (own key or in prototype chain)
+    const foundObject = target[$.list].find(object => {
+      if (object === proxy) return false
+      return Reflect.has({
+          [$.argument]: true /** mark object as holding additional arguments */,
+          visitedTargetHash: new Set([proxy]), // assign prototypes to skip visiting
+          target: object,
+        },
+        key,
+      )
+    })
+    return foundObject ? foundObject[key] : void 0 // because `undefined` is a global variable and not a reserved word in JS. void simply insures the return of undefined.
   },
 
   // The setPrototypeOf trap could be added and accept an array of objects, which would replace the prototypes. This is left as an exercice for the reader. Here I just let it modify the prototype of the target, which is not much useful because no trap uses the target.

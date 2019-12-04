@@ -60,4 +60,13 @@ export class MultipleDelegation {
     // add delegation prototypes to multiple delelgation proxy.
     multipleDelegationProxy[$.target][$.setter](delegationList)
   }
+
+  // 🧪 Used for unit tests
+  static debugging = {
+    // extract keys used in MultipleDelegation instances (actual target of proxy)
+    get keyUsedOnTargetInstance() {
+      let { target } = new MultipleDelegation()
+      return Reflect.ownKeys(target)
+    },
+  }
 }

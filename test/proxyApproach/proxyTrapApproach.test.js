@@ -6,12 +6,10 @@ import filesystem from 'fs'
 
 import { MultipleDelegation, $ } from '../../source/script.js'
 
-suite('Multiple Prototype Chain creation', () => {
+suite('MultipleDelegation Proxy Trap Hanlders:', () => {
   suiteSetup(() => {})
 
   suite('Proxy traps tests:', () => {
-    const proxyTargetKeysForMultipleDelegationInstance = [$.target, $.metadata, $.list]
-
     suite('instanceof', () => {
       let { proxy } = new MultipleDelegation()
       // regular item equality check of two arrays
@@ -40,7 +38,7 @@ suite('Multiple Prototype Chain creation', () => {
       const fixture = { symbol1: Symbol('symbol1'), symbol2: Symbol('symbol2'), key1: 'key1', key2: 'key2' }
       let parent1 = { [fixture.symbol1]: fixture.symbol1, [fixture.key1]: fixture.key1 }
       let parent2 = { [fixture.symbol2]: fixture.symbol2, [fixture.key2]: fixture.key2 }
-      const resultFixture = [...Reflect.ownKeys(Object.assign({}, parent1, parent2)), ...proxyTargetKeysForMultipleDelegationInstance]
+      const resultFixture = [...Reflect.ownKeys(Object.assign({}, parent1, parent2)), ...MultipleDelegation.debugging.keyUsedOnTargetInstance]
 
       let { proxy } = new MultipleDelegation()
       proxy[$.target][$.setter]([parent1, parent2])
@@ -66,7 +64,7 @@ suite('Multiple Prototype Chain creation', () => {
       const fixture = { symbol1: Symbol('symbol1'), symbol2: Symbol('symbol2'), key1: 'key1', key2: 'key2' }
       let parent1 = { [fixture.symbol1]: fixture.symbol1, [fixture.key1]: fixture.key1 }
       let parent2 = { [fixture.symbol2]: fixture.symbol2, [fixture.key2]: fixture.key2 }
-      const resultFixture = [...Reflect.ownKeys(Object.assign({}, parent1, parent2)), ...proxyTargetKeysForMultipleDelegationInstance]
+      const resultFixture = [...Reflect.ownKeys(Object.assign({}, parent1, parent2)), ...MultipleDelegation.debugging.keyUsedOnTargetInstance]
 
       let { proxy } = new MultipleDelegation()
       proxy[$.target][$.setter]([parent1, parent2])
@@ -91,7 +89,7 @@ suite('Multiple Prototype Chain creation', () => {
       const fixture = { symbol1: Symbol('symbol1'), symbol2: Symbol('symbol2'), key1: 'key1', key2: 'key2' }
       let parent1 = { [fixture.symbol1]: fixture.symbol1, [fixture.key1]: fixture.key1 }
       let parent2 = { [fixture.symbol2]: fixture.symbol2, [fixture.key2]: fixture.key2 }
-      const resultFixture = [...Reflect.ownKeys(Object.assign({}, parent1, parent2)), ...proxyTargetKeysForMultipleDelegationInstance]
+      const resultFixture = [...Reflect.ownKeys(Object.assign({}, parent1, parent2)), ...MultipleDelegation.debugging.keyUsedOnTargetInstance]
 
       let { proxy } = new MultipleDelegation()
       proxy[$.target][$.setter]([parent1, parent2])
@@ -117,38 +115,53 @@ suite('Multiple Prototype Chain creation', () => {
       })
     })
 
-    // suite('get trap', () => {
-    //   const fixture = { symbol1: Symbol('symbol1'), symbol2: Symbol('symbol2'), key1: 'key1', key2: 'key2' }
-    //   let parent1 = { [fixture.symbol1]: fixture.symbol1, [fixture.key1]: fixture.key1 }
-    //   let parent2 = { [fixture.symbol2]: fixture.symbol2, [fixture.key2]: fixture.key2 }
-    //   const resultFixture = Reflect.ownKeys(Object.assign({}, parent1, parent2))
+    suite('get trap', () => {
+      const fixture = { symbol1: Symbol('symbol1'), symbol2: Symbol('symbol2'), key1: 'key1', key2: 'key2' }
+      let parent1 = { [fixture.symbol1]: fixture.symbol1, [fixture.key1]: fixture.key1 }
+      let parent2 = { [fixture.symbol2]: fixture.symbol2, [fixture.key2]: fixture.key2 }
+      const resultFixture = {
+        key: [...Reflect.ownKeys(Object.assign({}, parent1, parent2))],
+        value: Object.assign({}, parent1, parent2),
+        target: {
+          key: MultipleDelegation.debugging.keyUsedOnTargetInstance,
+        },
+      }
 
-    //   let { proxy } = new MultipleDelegation()
-    //   proxy[$.target][$.setter]([parent1, parent2])
+      let { target, proxy } = new MultipleDelegation()
+      proxy[$.target][$.setter]([parent1, parent2])
 
-    //   test('retrieve properties:', () => {
-    //     assert(
-    //       resultFixture.every(value => Reflect.has(proxy, value)),
-    //       `• existing properties were not found"`,
-    //     )
-    //     assert(!Reflect.has(proxy, 'nonExistingKey'), `• nonexisting property check failed`)
-    //   })
+      test('Should retrieve properties from the different prototypes:', () => {
+        assert(
+          resultFixture.key.every(key => resultFixture.value[key] === Reflect.get(proxy, key)),
+          `• existing properties were not retrieved"`,
+        )
+        assert(
+          resultFixture.target.key.every(key => Reflect.get(proxy, key)),
+          `• existing properties of multipleDelegation target directly were not retrieved"`,
+        )
+        assert(Reflect.get(proxy, 'nonExistingKey') == undefined, `• nonexisting property retrieval should return undefined`)
+      })
 
-    //   test('Circular lookup should pass', () => {
-    //     // add circular inheritance
-    //     proxy[$.target][$.list].unshift(proxy) // add to begging to always be looked in.
-    //     let objectDelegatingToProxy = Object.setPrototypeOf(Object.create(null), proxy) // add circular proxy in non immediate hierarchy.
-    //     proxy[$.target][$.list].unshift(objectDelegatingToProxy)
-    //     assert(
-    //       resultFixture.every(value => Reflect.has(proxy, value)),
-    //       `• existing properties were not found"`,
-    //     )
-    //     // 'nonExistingKey' in proxy
-    //     assert(!Reflect.has(proxy, 'nonExistingKey'), `• nonexisting property check failed`)
-    //   })
-    // })
+      test('Circular lookup should pass', () => {
+        // add circular inheritance
+        proxy[$.target][$.list].unshift(proxy) // add to begging to always be looked in.
+        let objectDelegatingToProxy = Object.setPrototypeOf({ label: 'intermediate parent' }, proxy) // add circular proxy in non immediate hierarchy.
+        proxy[$.target][$.list].unshift(objectDelegatingToProxy)
+        assert(
+          resultFixture.key.every(key => resultFixture.value[key] === Reflect.get(proxy, key)),
+          `• existing properties were not retrieved"`,
+        )
+        assert(
+          resultFixture.target.key.every(key => Reflect.get(proxy, key)),
+          `• existing properties of multipleDelegation target directly were not retrieved"`,
+        )
+        assert(Reflect.get(proxy, 'nonExistingKey') == undefined, `• nonexisting property retrieval should return undefined`)
+      })
+    })
   })
+})
 
+suite('MultipleDelegation API - Multiple Prototype Chain creation', () => {
   suite('Accessing property through getters (prevent infinite getter lookup)', () => {
     let instance = { label: 'instance' },
       parent = { label: 'parent', value: 'value' }
