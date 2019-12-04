@@ -4,10 +4,11 @@ import util from 'util'
 import path from 'path'
 import filesystem from 'fs'
 
-import { MultiplePrototypeChain, MultipleDelegation } from '../source/script.js'
+import { MultiplePrototypeChain } from '../source/script.js'
 
 suite('Multiple Prototype Chain creation', () => {
   suiteSetup(() => {})
+
   suite('Create new chain with proxied prototypes', () => {
     class Superclass {}
     Superclass.prototype.meta = { Class: 'Superclass' }
@@ -52,6 +53,7 @@ suite('Multiple Prototype Chain creation', () => {
       assert.strictEqual(newInstance.__proto__.__proto__.__proto__.__proto__.__proto__, oldInstance.__proto__.__proto__.__proto__.__proto__.__proto__)
     })
   })
+
   suite('Insert object to prototypechain', () => {
     class Superclass {}
     Superclass.prototype.meta = { Class: 'Superclass' }
@@ -81,36 +83,6 @@ suite('Multiple Prototype Chain creation', () => {
       assert.strictEqual(newInstance.__proto__.__proto__.__proto__.delegatedPrototype, objectToAdd)
       assert.strictEqual(newInstance.__proto__.__proto__.__proto__.__proto__.delegatedPrototype, Superclass.prototype)
       assert.strictEqual(newInstance.__proto__.__proto__.__proto__.__proto__.__proto__, Superclass.prototype.__proto__)
-    })
-  })
-
-  suite('Accessing property through getters (prevent infinite getter lookup)', () => {
-    let instance = { label: 'instance' },
-      parent = { label: 'parent', value: 'value' }
-
-    // Object.setPrototypeOf(instance, parent)
-    /**
-     *  1. current prototype shouldn't be added twice.
-     *  2. In case duplicate prototypes are added, property lookup shouldn't cause infinite lookup errors.
-     *  3. getOwnPropertyKeys should work - console.log calls getOwnPropertyKeys which caused infinite lookup loops before.
-     */
-    MultipleDelegation.addDelegation({ targetObject: instance, delegationList: [parent] })
-
-    test('Ensure no infinite lookup of property in the hierarchy is being executed', () => {
-      try {
-        instance.constructor // |> console.log
-        Object.getOwnPropertyDescriptors(instance) // |> console.log
-        Object.getOwnPropertyDescriptors(instance.__proto__) // |> console.log // currently will return the descriptors of the first prototype in the list (Usually MultipleDelegation class prototype)
-        assert(instance.label === 'instance', `• Property lookup failed for "label"`)
-        assert(instance.value === 'value', `• Property lookup failed for "value"`)
-      } catch (error) {
-        console.log('• Error: Getter lookup caused infinite loop.')
-        throw error
-      }
-    })
-    test('Ensure lookup in prototype list works', () => {
-      assert(instance.label === 'instance', `• Property lookup failed for "label"`)
-      assert(instance.value === 'value', `• Property lookup failed for "value"`)
     })
   })
 })
