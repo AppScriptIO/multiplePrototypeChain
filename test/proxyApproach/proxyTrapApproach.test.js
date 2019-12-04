@@ -172,7 +172,10 @@ suite('MultipleDelegation API - Multiple Prototype Chain creation', () => {
      *  2. In case duplicate prototypes are added, property lookup shouldn't cause infinite lookup errors.
      *  3. getOwnPropertyKeys should work - console.log calls getOwnPropertyKeys which caused infinite lookup loops before.
      */
-    MultipleDelegation.addDelegation({ targetObject: instance, delegationList: [parent, instance /*circular delegation*/] })
+    MultipleDelegation.addDelegation({
+      targetObject: instance,
+      delegationList: [instance /*circular delegation*/, Object.create(instance) /*circular delegation with intermediate parent*/, parent],
+    })
 
     test('Ensure no infinite lookup of property in the hierarchy is being executed', () => {
       try {

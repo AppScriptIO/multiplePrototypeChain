@@ -39,6 +39,12 @@ export const proxyHandler = {
     return target[$.list] // return array of delegated prototypes
   },
 
+  // The setPrototypeOf trap could be added and accept an array of objects, which would replace the prototypes. This is left as an exercice for the reader. Here I just let it modify the prototype of the target, which is not much useful because no trap uses the target.
+  setPrototypeOf: (target, prototype /*May accept a single or multiple prototypes*/) => {
+    target[$.setter](prototype) // add prototype to delegated list of prototypes
+    return true
+  },
+
   /** 
     The ownKeys trap is a trap for Object.getOwnPropertyNames(). 
     Since ES7, for...in loops keep calling [[GetPrototypeOf]] and getting the own properties of each one. 
@@ -100,14 +106,18 @@ export const proxyHandler = {
     )
   },
 
-  // The get trap is a trap for getting property values. I use find to find the first prototype which contains that property, and I return the value, or call the getter on the appropriate receiver. This is handled by Reflect.get. If no prototype contains the property, I return undefined.
+  /*
+    The get trap is a trap for getting property values. I use find to find the first prototype which contains that property, and I return the value, 
+    or call the getter on the appropriate receiver. This is handled by Reflect.get. If no prototype contains the property, I return undefined.
+  */
   get(target, key, proxy /*proxy of target*/) {
     if (key in target) return target[key] // allow access to target's MultipleDelegation Functionalities to get the list of delgations.
 
     // find the object that has the property (own key or in prototype chain)
     const foundObject = target[$.list].find(object => {
       if (object === proxy) return false
-      return Reflect.has({
+      return Reflect.has(
+        {
           [$.argument]: true /** mark object as holding additional arguments */,
           visitedTargetHash: new Set([proxy]), // assign prototypes to skip visiting
           target: object,
@@ -118,17 +128,25 @@ export const proxyHandler = {
     return foundObject ? foundObject[key] : void 0 // because `undefined` is a global variable and not a reserved word in JS. void simply insures the return of undefined.
   },
 
-  // The setPrototypeOf trap could be added and accept an array of objects, which would replace the prototypes. This is left as an exercice for the reader. Here I just let it modify the prototype of the target, which is not much useful because no trap uses the target.
-  setPrototypeOf: (target, prototype /*May accept a single or multiple prototypes*/) => {
-    target[$.setter](prototype) // add prototype to delegated list of prototypes
-    return true
+  /* 
+    The set trap is a trap for setting property values. 
+    I use find to find the first prototype which contains that property, and I call its setter on the appropriate receiver. 
+    If there is no setter or no prototype contains the property, the value is defined on the appropriate receiver. This is handled by Reflect.set.
+  */
+  set(target, property, value, receiver) {
+    // find the prototype containing the property
+    let foundObject = target[$.list].find(object => property in object)
+    if (foundObject) Reflect.set(foundObject, property, value, receiver)
+
+    // otherwise set on the target of the proxy (rather than on one of the prototypes).
+    return Reflect.set(target, property, value, receiver)
   },
-  // The set trap is a trap for setting property values. I use find to find the first prototype which contains that property, and I call its setter on the appropriate receiver. If there is no setter or no prototype contains the property, the value is defined on the appropriate receiver. This is handled by Reflect.set.
-  set(target, prop, value, receiver) {
-    var obj = target[$.list].find(obj => prop in obj)
-    return Reflect.set(obj || Object.create(null), prop, value, receiver)
+
+  // define property on target of proxy
+  defineProperty(target, key, descriptor) {
+    return Reflect.defineProperty(...arguments)
   },
+
   // The preventExtensions and defineProperty traps are only included to prevent these operations from modifying the proxy target. Otherwise we could end up breaking some proxy invariants.
   preventExtensions: target => false,
-  defineProperty: (target, prop, desc) => false,
 }
