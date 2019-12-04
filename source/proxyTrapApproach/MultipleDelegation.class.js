@@ -10,9 +10,13 @@ export class MultipleDelegation {
   */
   static proxyHandler = proxyHandler
 
-  // Trap `instanceof` - check if instance is of MultipleDelegation
+  /** Trap `instanceof` - check if instance is of MultipleDelegation
+   * Note: this implemenation of trap redefines the purpose of `instanceof` to check for a direct/immediate instances only.
+   */
   static [Symbol.hasInstance](instance) {
-    if (typeof instance == 'object' && instance[$.target]) return Object.getPrototypeOf(instance[$.target]) === this.prototype // get prototype of the actual target not the proxy wrapping it.
+    if (typeof instance == 'object' && Boolean(Reflect.ownKeys(instance).includes($.target))) {
+      return Object.getPrototypeOf(instance[$.target]) === this.prototype // get prototype of the actual target not the proxy wrapping it.
+    }
   }
 
   // set prototype
