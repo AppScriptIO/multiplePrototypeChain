@@ -1,88 +1,89 @@
-import assert from 'assert'
-import { assert as chaiAssertion } from 'chai'
-import util from 'util'
-import path from 'path'
-import filesystem from 'fs'
+"use strict";var _interopRequireDefault = require("@babel/runtime/helpers/interopRequireDefault");var _assert = _interopRequireDefault(require("assert"));
 
-import { MultiplePrototypeChain } from '../source/script.js'
+
+
+
+
+var _script = require("../source/script.js");
 
 suite('Multiple Prototype Chain creation', () => {
-  suiteSetup(() => {})
+  suiteSetup(() => {});
 
   suite('Create new chain with proxied prototypes', () => {
     class Superclass {}
-    Superclass.prototype.meta = { Class: 'Superclass' }
+    Superclass.prototype.meta = { Class: 'Superclass' };
     class Class extends Superclass {}
-    Class.prototype.meta = { Class: 'Class' }
+    Class.prototype.meta = { Class: 'Class' };
     class Subclass extends Class {}
-    Subclass.prototype.meta = { Class: 'Subclass' }
+    Subclass.prototype.meta = { Class: 'Subclass' };
 
-    let oldInstance = new Subclass()
-    oldInstance.x = 'x'
-    let newInstance = MultiplePrototypeChain.createUniqueProtoChain({ object: oldInstance })
+    let oldInstance = new Subclass();
+    oldInstance.x = 'x';
+    let newInstance = _script.MultiplePrototypeChain.createUniqueProtoChain({ object: oldInstance });
 
     test('Get properties - Preserve properties of original instance and original prototypes', () => {
-      assert.strictEqual(newInstance.x, oldInstance.x)
-      assert.strictEqual(newInstance.meta.Class, 'Subclass')
-      assert.strictEqual(newInstance.__proto__.meta.Class, 'Subclass')
-      assert.strictEqual(newInstance.__proto__.__proto__.meta.Class, 'Class')
-      assert.strictEqual(newInstance.__proto__.__proto__.__proto__.meta.Class, 'Superclass')
-    })
+      _assert.default.strictEqual(newInstance.x, oldInstance.x);
+      _assert.default.strictEqual(newInstance.meta.Class, 'Subclass');
+      _assert.default.strictEqual(newInstance.__proto__.meta.Class, 'Subclass');
+      _assert.default.strictEqual(newInstance.__proto__.__proto__.meta.Class, 'Class');
+      _assert.default.strictEqual(newInstance.__proto__.__proto__.__proto__.meta.Class, 'Superclass');
+    });
 
     test('Set properties - Should be able to set properties through the proxy', () => {
-      newInstance.t = 't'
-      assert.strictEqual(newInstance.t, 't')
-      assert.strictEqual(newInstance.delegatedPrototype.t, 't')
-    })
+      newInstance.t = 't';
+      _assert.default.strictEqual(newInstance.t, 't');
+      _assert.default.strictEqual(newInstance.delegatedPrototype.t, 't');
+    });
 
     test('In operator should check in the delegatedPrototype', () => {
-      newInstance.b = 'b'
-      assert.strictEqual('b' in newInstance, true)
-    })
+      newInstance.b = 'b';
+      _assert.default.strictEqual('b' in newInstance, true);
+    });
 
     test('create new prototypes with corresponding delegatedPrototypes values equal to original proto chain', () => {
-      // Subclass
-      assert.strictEqual(newInstance.__proto__.delegatedPrototype, oldInstance.__proto__)
-      // Class
-      assert.strictEqual(newInstance.__proto__.__proto__.delegatedPrototype, oldInstance.__proto__.__proto__)
-      // Superclass
-      assert.strictEqual(newInstance.__proto__.__proto__.__proto__.delegatedPrototype, oldInstance.__proto__.__proto__.__proto__)
-      // Object or Function or their prototypes ...
-      assert.strictEqual(newInstance.__proto__.__proto__.__proto__.__proto__, oldInstance.__proto__.__proto__.__proto__.__proto__)
-      // null
-      assert.strictEqual(newInstance.__proto__.__proto__.__proto__.__proto__.__proto__, oldInstance.__proto__.__proto__.__proto__.__proto__.__proto__)
-    })
-  })
+
+      _assert.default.strictEqual(newInstance.__proto__.delegatedPrototype, oldInstance.__proto__);
+
+      _assert.default.strictEqual(newInstance.__proto__.__proto__.delegatedPrototype, oldInstance.__proto__.__proto__);
+
+      _assert.default.strictEqual(newInstance.__proto__.__proto__.__proto__.delegatedPrototype, oldInstance.__proto__.__proto__.__proto__);
+
+      _assert.default.strictEqual(newInstance.__proto__.__proto__.__proto__.__proto__, oldInstance.__proto__.__proto__.__proto__.__proto__);
+
+      _assert.default.strictEqual(newInstance.__proto__.__proto__.__proto__.__proto__.__proto__, oldInstance.__proto__.__proto__.__proto__.__proto__.__proto__);
+    });
+  });
 
   suite('Insert object to prototypechain', () => {
     class Superclass {}
-    Superclass.prototype.meta = { Class: 'Superclass' }
+    Superclass.prototype.meta = { Class: 'Superclass' };
     class Class extends Superclass {}
-    Class.prototype.meta = { Class: 'Class' }
+    Class.prototype.meta = { Class: 'Class' };
     class Subclass extends Class {}
-    Subclass.prototype.meta = { Class: 'Subclass' }
+    Subclass.prototype.meta = { Class: 'Subclass' };
 
-    let oldInstance = new Subclass()
-    // prepare for multiplechain pattern format.
+    let oldInstance = new Subclass();
 
-    oldInstance.__proto__ = { delegatedPrototype: Subclass.prototype }
-    oldInstance.__proto__.__proto__ = { delegatedPrototype: Class.prototype }
-    oldInstance.__proto__.__proto__.__proto__ = { delegatedPrototype: Superclass.prototype }
-    oldInstance.__proto__.__proto__.__proto__.__proto__ = Superclass.prototype.__proto__
 
-    let objectToAdd = { x: 'x' }
-    let newInstance = MultiplePrototypeChain.insertObjectToPrototypeChain({
+    oldInstance.__proto__ = { delegatedPrototype: Subclass.prototype };
+    oldInstance.__proto__.__proto__ = { delegatedPrototype: Class.prototype };
+    oldInstance.__proto__.__proto__.__proto__ = { delegatedPrototype: Superclass.prototype };
+    oldInstance.__proto__.__proto__.__proto__.__proto__ = Superclass.prototype.__proto__;
+
+    let objectToAdd = { x: 'x' };
+    let newInstance = _script.MultiplePrototypeChain.insertObjectToPrototypeChain({
       prototypeChain: oldInstance,
       objectToAdd: objectToAdd,
-      beforePrototype: Superclass.prototype,
-    })
+      beforePrototype: Superclass.prototype });
+
 
     test('Object should be added as delegatedPrototype inside a pointerPrototype in specified place preserving previous chain prototypes', () => {
-      assert.strictEqual(newInstance.__proto__.delegatedPrototype, Subclass.prototype)
-      assert.strictEqual(newInstance.__proto__.__proto__.delegatedPrototype, Class.prototype)
-      assert.strictEqual(newInstance.__proto__.__proto__.__proto__.delegatedPrototype, objectToAdd)
-      assert.strictEqual(newInstance.__proto__.__proto__.__proto__.__proto__.delegatedPrototype, Superclass.prototype)
-      assert.strictEqual(newInstance.__proto__.__proto__.__proto__.__proto__.__proto__, Superclass.prototype.__proto__)
-    })
-  })
-})
+      _assert.default.strictEqual(newInstance.__proto__.delegatedPrototype, Subclass.prototype);
+      _assert.default.strictEqual(newInstance.__proto__.__proto__.delegatedPrototype, Class.prototype);
+      _assert.default.strictEqual(newInstance.__proto__.__proto__.__proto__.delegatedPrototype, objectToAdd);
+      _assert.default.strictEqual(newInstance.__proto__.__proto__.__proto__.__proto__.delegatedPrototype, Superclass.prototype);
+      _assert.default.strictEqual(newInstance.__proto__.__proto__.__proto__.__proto__.__proto__, Superclass.prototype.__proto__);
+    });
+  });
+});
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbIi4uLy4uL3Rlc3QvbmV3Q2hhaW5DcmVhdGlvbkFwcHJvYWNoLnRlc3QuanMiXSwibmFtZXMiOlsic3VpdGUiLCJzdWl0ZVNldHVwIiwiU3VwZXJjbGFzcyIsInByb3RvdHlwZSIsIm1ldGEiLCJDbGFzcyIsIlN1YmNsYXNzIiwib2xkSW5zdGFuY2UiLCJ4IiwibmV3SW5zdGFuY2UiLCJNdWx0aXBsZVByb3RvdHlwZUNoYWluIiwiY3JlYXRlVW5pcXVlUHJvdG9DaGFpbiIsIm9iamVjdCIsInRlc3QiLCJhc3NlcnQiLCJzdHJpY3RFcXVhbCIsIl9fcHJvdG9fXyIsInQiLCJkZWxlZ2F0ZWRQcm90b3R5cGUiLCJiIiwib2JqZWN0VG9BZGQiLCJpbnNlcnRPYmplY3RUb1Byb3RvdHlwZUNoYWluIiwicHJvdG90eXBlQ2hhaW4iLCJiZWZvcmVQcm90b3R5cGUiXSwibWFwcGluZ3MiOiJrR0FBQTs7Ozs7O0FBTUE7O0FBRUFBLEtBQUssQ0FBQyxtQ0FBRCxFQUFzQyxNQUFNO0FBQy9DQyxFQUFBQSxVQUFVLENBQUMsTUFBTSxDQUFFLENBQVQsQ0FBVjs7QUFFQUQsRUFBQUEsS0FBSyxDQUFDLDBDQUFELEVBQTZDLE1BQU07QUFDdEQsVUFBTUUsVUFBTixDQUFpQjtBQUNqQkEsSUFBQUEsVUFBVSxDQUFDQyxTQUFYLENBQXFCQyxJQUFyQixHQUE0QixFQUFFQyxLQUFLLEVBQUUsWUFBVCxFQUE1QjtBQUNBLFVBQU1BLEtBQU4sU0FBb0JILFVBQXBCLENBQStCO0FBQy9CRyxJQUFBQSxLQUFLLENBQUNGLFNBQU4sQ0FBZ0JDLElBQWhCLEdBQXVCLEVBQUVDLEtBQUssRUFBRSxPQUFULEVBQXZCO0FBQ0EsVUFBTUMsUUFBTixTQUF1QkQsS0FBdkIsQ0FBNkI7QUFDN0JDLElBQUFBLFFBQVEsQ0FBQ0gsU0FBVCxDQUFtQkMsSUFBbkIsR0FBMEIsRUFBRUMsS0FBSyxFQUFFLFVBQVQsRUFBMUI7O0FBRUEsUUFBSUUsV0FBVyxHQUFHLElBQUlELFFBQUosRUFBbEI7QUFD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Q0FBc0JFLGtCQUF6QyxFQUE2RFosUUFBUSxDQUFDSCxTQUF0RTtBQUNBVyxzQkFBT0MsV0FBUCxDQUFtQk4sV0FBVyxDQUFDTyxTQUFaLENBQXNCQSxTQUF0QixDQUFnQ0Usa0JBQW5ELEVBQXVFYixLQUFLLENBQUNGLFNBQTdFO0FBQ0FXLHNCQUFPQyxXQUFQLENBQW1CTixXQUFXLENBQUNPLFNBQVosQ0FBc0JBLFNBQXRCLENBQWdDQSxTQUFoQyxDQUEwQ0Usa0JBQTdELEVBQWlGRSxXQUFqRjtBQUNBTixzQkFBT0MsV0FBUCxDQUFtQk4sV0FBVyxDQUFDTyxTQUFaLENBQXNCQSxTQUF0QixDQUFnQ0EsU0FBaEMsQ0FBMENBLFNBQTFDLENBQW9ERSxrQkFBdkUsRUFBMkZoQixVQUFVLENBQUNDLFNBQXRHO0FBQ0FXLHNCQUFPQyxXQUFQLENBQW1CTixXQUFXLENBQUNPLFNBQVosQ0FBc0JBLFNBQXRCLENBQWdDQSxTQUFoQyxDQUEwQ0EsU0FBMUMsQ0FBb0RBLFNBQXZFLEVBQWtGZCxVQUFVLENBQUNDLFNBQVgsQ0FBcUJhLFNBQXZHO0FBQ0QsS0FORyxDQUFKO0FBT0QsR0E5QkksQ0FBTDtBQStCRCxDQS9FSSxDQUFMIiwic291cmNlc0NvbnRlbnQiOlsiaW1wb3J0IGFzc2VydCBmcm9tICdhc3NlcnQnXHJcbmltcG9ydCB7IGFzc2VydCBhcyBjaGFpQXNzZXJ0aW9uIH0gZnJvbSAnY2hhaSdcclxuaW1wb3J0IHV0aWwgZnJvbSAndXRpbCdcclxuaW1wb3J0IHBhdGggZnJvbSAncGF0aCdcclxuaW1wb3J0IGZpbGVzeXN0ZW0gZnJvbSAnZnMnXHJcblxyXG5pbXBvcnQgeyBNdWx0aXBsZVByb3RvdHlwZUNoYWluIH0gZnJvbSAnLi4vc291cmNlL3NjcmlwdC5qcydcclxuXHJcbnN1aXRlKCdNdWx0aXBsZSBQcm90b3R5cGUgQ2hhaW4gY3JlYXRpb24nLCAoKSA9PiB7XHJcbiAgc3VpdGVTZXR1cCgoKSA9PiB7fSlcclxuXHJcbiAgc3VpdGUoJ0NyZWF0ZSBuZXcgY2hhaW4gd2l0aCBwcm94aWVkIHByb3RvdHlwZXMnLCAoKSA9PiB7XHJcbiAgICBjbGFzcyBTdXBlcmNsYXNzIHt9XHJcbiAgICBTdXBlcmNsYXNzLnByb3RvdHlwZS5tZXRhID0geyBDbGFzczogJ1N1cGVyY2xhc3MnIH1cclxuICAgIGNsYXNzIENsYXNzIGV4dGVuZHMgU3VwZXJjbGFzcyB7fVxyXG4gICAgQ2xhc3MucHJvdG90eXBlLm1ldGEgPSB7IENsYXNzOiAnQ2xhc3MnIH1cclxuICAgIGNsYXNzIFN1YmNsYXNzIGV4dGVuZHMgQ2xhc3Mge31cclxuICAgIFN1YmNsYXNzLnByb3RvdHlwZS5tZXRhID0geyBDbGFzczogJ1N1YmNsYXNzJyB9XHJcblxyXG4gICAgbGV0IG9sZEluc3RhbmNlID0gbmV3IFN1YmNsYXNzKClcclxuICAgIG9sZEluc3RhbmNlLnggPSAneCdcclxuICAgIGxldCBuZXdJbnN0YW5jZSA9IE11bHRpcGxlUHJvdG90eXBlQ2hhaW4uY3JlYXRlVW5pcXVlUHJvdG9DaGFpbih7IG9iamVjdDogb2xkSW5zdGFuY2UgfSlcclxuXHJcbiAgICB0ZXN0KCdHZXQgcHJvcGVydGllcyAtIFByZXNlcnZlIHByb3BlcnRpZXMgb2Ygb3JpZ2luYWwgaW5zdGFuY2UgYW5kIG9yaWdpbmFsIHByb3RvdHlwZXMnLCAoKSA9PiB7XHJcbiAgICAgIGFzc2VydC5zdHJpY3RFcXVhbChuZXdJbnN0YW5jZS54LCBvbGRJbnN0YW5jZS54KVxyXG4gICAgICBhc3NlcnQuc3RyaWN0RXF1YWwobmV3SW5zdGFuY2UubWV0YS5DbGFzcywgJ1N1YmNsYXNzJylcclxuICAgICAgYXNzZXJ0LnN0cmljdEVxdWFsKG5ld0luc3RhbmNlLl9fcHJvdG9fXy5tZXRhLkNsYXNzLCAnU3ViY2xhc3MnKVxyXG4gICAgICBhc3NlcnQuc3RyaWN0RXF1YWwobmV3SW5zdGFuY2UuX19wcm90b19fLl9fcHJvdG9fXy5tZXRhLkNsYXNzLCAnQ2xhc3MnKVxyXG4gICAgICBhc3NlcnQuc3RyaWN0RXF1YWwobmV3SW5zdGFuY2UuX19wcm90b19fLl9fcHJvdG9fXy5fX3Byb3RvX18ubWV0YS5DbGFzcywgJ1N1cGVyY2xhc3MnKVxyXG4gICAgfSlcclxuXHJcbiAgICB0ZXN0KCdTZXQgcHJvcGVydGllcyAtIFNob3VsZCBiZSBhYmxlIHRvIHNldCBwcm9wZXJ0aWVzIHRocm91Z2ggdGhlIHByb3h5JywgKCkgPT4ge1xyXG4gICAgICBuZXdJbnN0YW5jZS50ID0gJ3QnXHJcbiAgICAgIGFzc2VydC5zdHJpY3RFcXVhbChuZXdJbnN0YW5jZS50LCAndCcpXHJcbiAgICAgIGFzc2VydC5zdHJpY3RFcXVhbChuZXdJbnN0YW5jZS5kZWxlZ2F0ZWRQcm90b3R5cGUudCwgJ3QnKVxyXG4gICAgfSlcclxuXHJcbiAgICB0ZXN0KCdJbiBvcGVyYXRvciBzaG91bGQgY2hlY2sgaW4gdGhlIGRlbGVnYXRlZFByb3RvdHlwZScsICgpID0+IHtcclxuICAgICAgbmV3SW5zdGFuY2UuYiA9ICdiJ1xyXG4gICAgICBhc3NlcnQuc3RyaWN0RXF1YWwoJ2InIGluIG5ld0luc3RhbmNlLCB0cnVlKVxyXG4gICAgfSlcclxuXHJcbiAgICB0ZXN0KCdjcmVhdGUgbmV3IHByb3RvdHlwZXMgd2l0aCBjb3JyZXNwb25kaW5nIGRlbGVnYXRlZFByb3RvdHlwZXMgdmFsdWVzIGVxdWFsIHRvIG9yaWdpbmFsIHByb3RvIGNoYWluJywgKCkgPT4ge1xyXG4gICAgICAvLyBTdWJjbGFzc1xyXG4gICAgICBhc3NlcnQuc3RyaWN0RXF1YWwobmV3SW5zdGFuY2UuX19wcm90b19fLmRlbGVnYXRlZFByb3RvdHlwZSwgb2xkSW5zdGFuY2UuX19wcm90b19fKVxyXG4gICAgICAvLyBDbGFzc1xyXG4gICAgICBhc3NlcnQuc3RyaWN0RXF1YWwobmV3SW5zdGFuY2UuX19wcm90b19fLl9fcHJvdG9fXy5kZWxlZ2F0ZWRQcm90b3R5cGUsIG9sZEluc3RhbmNlLl9fcHJvdG9fXy5fX3Byb3RvX18pXHJcbiAgICAgIC8vIFN1cGVyY2xhc3NcclxuICAgICAgYXNzZXJ0LnN0cmljdEVxdWFsKG5ld0luc3RhbmNlLl9fcHJvdG9fXy5fX3Byb3RvX18uX19wcm90b19fLmRlbGVnYXRlZFByb3RvdHlwZSwgb2xkSW5zdGFuY2UuX19wcm90b19fLl9fcHJvdG9fXy5fX3Byb3RvX18pXHJcbiAgICAgIC8vIE9iamVjdCBvciBGdW5jdGlvbiBvciB0aGVpciBwcm90b3R5cGVzIC4uLlxyXG4gICAgICBhc3NlcnQuc3RyaWN0RXF1YWwobmV3SW5zdGFuY2UuX19wcm90b19fLl9fcHJvdG9fXy5fX3Byb3RvX18uX19wcm90b19fLCBvbGRJbnN0YW5jZS5fX3Byb3RvX18uX19wcm90b19fLl9fcHJvdG9fXy5fX3Byb3RvX18pXHJcbiAgICAgIC8vIG51bGxcclxuICAgICAgYXNzZXJ0LnN0cmljdEVxdWFsKG5ld0luc3RhbmNlLl9fcHJvdG9fXy5fX3Byb3RvX18uX19wcm90b19fLl9fcHJvdG9fXy5fX3Byb3RvX18sIG9sZEluc3RhbmNlLl9fcHJvdG9fXy5fX3Byb3RvX18uX19wcm90b19fLl9fcHJvdG9fXy5fX3Byb3RvX18pXHJcbiAgICB9KVxyXG4gIH0pXHJcblxyXG4gIHN1aXRlKCdJbnNlcnQgb2JqZWN0IHRvIHByb3RvdHlwZWNoYWluJywgKCkgPT4ge1xyXG4gICAgY2xhc3MgU3VwZXJjbGFzcyB7fVxyXG4gICAgU3VwZXJjbGFzcy5wcm90b3R5cGUubWV0YSA9IHsgQ2xhc3M6ICdTdXBlcmNsYXNzJyB9XHJcbiAgICBjbGFzcyBDbGFzcyBleHRlbmRzIFN1cGVyY2xhc3Mge31cclxuICAgIENsYXNzLnByb3RvdHlwZS5tZXRhID0geyBDbGFzczogJ0NsYXNzJyB9XHJcbiAgICBjbGFzcyBTdWJjbGFzcyBleHRlbmRzIENsYXNzIHt9XHJcbiAgICBTdWJjbGFzcy5wcm90b3R5cGUubWV0YSA9IHsgQ2xhc3M6ICdTdWJjbGFzcycgfVxyXG5cclxuICAgIGxldCBvbGRJbnN0YW5jZSA9IG5ldyBTdWJjbGFzcygpXHJcbiAgICAvLyBwcmVwYXJlIGZvciBtdWx0aXBsZWNoYWluIHBhdHRlcm4gZm9ybWF0LlxyXG5cclxuICAgIG9sZEluc3RhbmNlLl9fcHJvdG9fXyA9IHsgZGVsZWdhdGVkUHJvdG90eXBlOiBTdWJjbGFzcy5wcm90b3R5cGUgfVxyXG4gICAgb2xkSW5zdGFuY2UuX19wcm90b19fLl9fcHJvdG9fXyA9IHsgZGVsZWdhdGVkUHJvdG90eXBlOiBDbGFzcy5wcm90b3R5cGUgfVxyXG4gICAgb2xkSW5zdGFuY2UuX19wcm90b19fLl9fcHJvdG9fXy5fX3Byb3RvX18gPSB7IGRlbGVnYXRlZFByb3RvdHlwZTogU3VwZXJjbGFzcy5wcm90b3R5cGUgfVxyXG4gICAgb2xkSW5zdGFuY2UuX19wcm90b19fLl9fcHJvdG9fXy5fX3Byb3RvX18uX19wcm90b19fID0gU3VwZXJjbGFzcy5wcm90b3R5cGUuX19wcm90b19fXHJcblxyXG4gICAgbGV0IG9iamVjdFRvQWRkID0geyB4OiAneCcgfVxyXG4gICAgbGV0IG5ld0luc3RhbmNlID0gTXVsdGlwbGVQcm90b3R5cGVDaGFpbi5pbnNlcnRPYmplY3RUb1Byb3RvdHlwZUNoYWluKHtcclxuICAgICAgcHJvdG90eXBlQ2hhaW46IG9sZEluc3RhbmNlLFxyXG4gICAgICBvYmplY3RUb0FkZDogb2JqZWN0VG9BZGQsXHJcbiAgICAgIGJlZm9yZVByb3RvdHlwZTogU3VwZXJjbGFzcy5wcm90b3R5cGUsXHJcbiAgICB9KVxyXG5cclxuICAgIHRlc3QoJ09iamVjdCBzaG91bGQgYmUgYWRkZWQgYXMgZGVsZWdhdGVkUHJvdG90eXBlIGluc2lkZSBhIHBvaW50ZXJQcm90b3R5cGUgaW4gc3BlY2lmaWVkIHBsYWNlIHByZXNlcnZpbmcgcHJldmlvdXMgY2hhaW4gcHJvdG90eXBlcycsICgpID0+IHtcclxuICAgICAgYXNzZXJ0LnN0cmljdEVxdWFsKG5ld0luc3RhbmNlLl9fcHJvdG9fXy5kZWxlZ2F0ZWRQcm90b3R5cGUsIFN1YmNsYXNzLnByb3RvdHlwZSlcclxuICAgICAgYXNzZXJ0LnN0cmljdEVxdWFsKG5ld0luc3RhbmNlLl9fcHJvdG9fXy5fX3Byb3RvX18uZGVsZWdhdGVkUHJvdG90eXBlLCBDbGFzcy5wcm90b3R5cGUpXHJcbiAgICAgIGFzc2VydC5zdHJpY3RFcXVhbChuZXdJbnN0YW5jZS5fX3Byb3RvX18uX19wcm90b19fLl9fcHJvdG9fXy5kZWxlZ2F0ZWRQcm90b3R5cGUsIG9iamVjdFRvQWRkKVxyXG4gICAgICBhc3NlcnQuc3RyaWN0RXF1YWwobmV3SW5zdGFuY2UuX19wcm90b19fLl9fcHJvdG9fXy5fX3Byb3RvX18uX19wcm90b19fLmRlbGVnYXRlZFByb3RvdHlwZSwgU3VwZXJjbGFzcy5wcm90b3R5cGUpXHJcbiAgICAgIGFzc2VydC5zdHJpY3RFcXVhbChuZXdJbnN0YW5jZS5fX3Byb3RvX18uX19wcm90b19fLl9fcHJvdG9fXy5fX3Byb3RvX18uX19wcm90b19fLCBTdXBlcmNsYXNzLnByb3RvdHlwZS5fX3Byb3RvX18pXHJcbiAgICB9KVxyXG4gIH0pXHJcbn0pXHJcbiJdfQ==
