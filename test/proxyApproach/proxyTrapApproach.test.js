@@ -182,7 +182,7 @@ suite('MultipleDelegation API - Multiple Prototype Chain creation', () => {
         instance.nonExistingProperty // |> console.log
         instance.constructor // |> console.log
         Object.getOwnPropertyDescriptors(instance) // |> console.log
-        Object.getOwnPropertyDescriptors(instance.__proto__) // |> console.log // currently will return the descriptors of the first prototype in the list (Usually MultipleDelegation class prototype)
+        Object.getOwnPropertyDescriptors(instance |> Object.getPrototypeOf) // |> console.log // currently will return the descriptors of the first prototype in the list (Usually MultipleDelegation class prototype)
         assert(instance.label === 'instance', `• Property lookup failed for "label"`)
         assert(instance.value === 'value', `• Property lookup failed for "value"`)
       } catch (error) {

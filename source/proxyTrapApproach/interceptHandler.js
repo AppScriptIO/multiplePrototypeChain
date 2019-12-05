@@ -1,32 +1,68 @@
+// resource: https://javascript.info/proxy
+// https://www.ecma-international.org/ecma-262/10.0/index.html#sec-reflection
+
 import { $ } from './reference.js'
 import { MultipleDelegation } from './MultipleDelegation.class.js'
 
 /**
  * This function is aware of MultipleDelegation instances to prevent unnecessary lookups, and prevent circular ones.
  * NOTE: Usage of proxy instead of wrapping in a function will preserve functionalities, for targets that are proxies themselves who have handlers for `has` which will be called first.
- * @param {Object} argument target or additional argument containing target
+ * @param {Object} argument target or additional argument containing target. Note: Use `key` (second argument) as additional argument rather than using `target` (first argument of handler), because when calling reflect.has on the proxy, the handler will be must triggered (using the target as argument will not allow that).
  */
 Reflect.has = new Proxy(Reflect.has, {
-  apply(reflectHas, thisArg, [target, key]) {
+  apply(reflectHas, thisArg, [target, key /* may hold additional arguments*/]) {
     // ignore additional arguments for objects requesting native implementation of Reflect.has, as the additional arguments are used in targets that are MultipleDelegation proxies only.
     let argument
-    if (typeof target === 'object' && Reflect.ownKeys(target).includes($.argument)) {
-      argument = target
-      ;({ target } = argument) // extract target from additional arguments object
+    if (typeof key === 'object' && Reflect.ownKeys(key).includes($.argument)) {
+      argument = key
+      ;({ key } = argument) // extract target from additional arguments object
     }
 
     if (argument) {
-      if (target instanceof MultipleDelegation) return reflectHas(argument, key)
+      if (target instanceof MultipleDelegation) {
+        //  `return reflectHas(target, argument)` - Important using the native reflect has implemenatation will convert the argument object (in place of key parameter) to string, which will not allow the proxy handler to use it.
+        return proxyHandler.has(target, argument) // call proxy handler directly.
+      }
 
       if (Reflect.ownKeys(target).includes(key)) return true
       else {
-        argument.target = target |> Object.getPrototypeOf // pass on argument additional values
-        return argument.target ? Reflect.has(argument, key) : false
+        target = target |> Object.getPrototypeOf // pass on argument additional values
+        return target ? Reflect.has(target, argument) : false
       }
     }
 
     // will trigger the original Reflect.has. In case MultipleDelegation instance, the proxy handler will be triggered
     return reflectHas(target, key)
+  },
+})
+
+Reflect.get = new Proxy(Reflect.get, {
+  apply(reflectGet, thisArg, [target, key, receiver /* may hold additional arguments*/]) {
+    // ignore additional arguments for objects requesting native implementation of Reflect.has, as the additional arguments are used in targets that are MultipleDelegation proxies only.
+    let visitedTargetHash, argument
+    if (typeof receiver === 'object' && Reflect.ownKeys(receiver).includes($.argument)) {
+      argument = receiver
+      ;({ visitedTargetHash, receiver } = argument)
+    }
+
+    if (argument) {
+      if (target instanceof MultipleDelegation) {
+        return proxyHandler.get(target[$.target], key, argument) // call proxy handler directly, as the receiver function will be overriden by the native call.
+      }
+
+      if (!visitedTargetHash.has(target) && Reflect.ownKeys(target).includes(key)) return target[key]
+
+      visitedTargetHash.add(target)
+
+      return Reflect.get(target |> Object.getPrototypeOf, key, {
+        [$.argument]: true /** mark object as holding additional arguments */,
+        visitedTargetHash,
+        receiver: receiver || target,
+      })
+    }
+
+    // will trigger the original Reflect.has. In case MultipleDelegation instance, the proxy handler will be triggered
+    return reflectGet(target, key, receiver || target)
   },
 })
 
@@ -76,16 +112,18 @@ export const proxyHandler = {
       descriptor.configurable = true
     }
 
-    return descriptor ? descriptor : false
+    return descriptor ? descriptor : undefined
   },
 
-  // The has trap is a trap for the in operator. I use some to check if at least one prototype contains the property.
-  has(target, key) {
+  /** The has trap is a trap for the in operator. I use some to check if at least one prototype contains the property.
+   * Note: when called through the native JS reflect.has implementation, the key will be converted to string, if passed an object. Therefore, it is called directly instead when required.
+   */
+  has(target, key /** can be used as additional argument object */) {
     // check if the first argument holds additional arguments from previous implementation or only the native `target` argument.
     let visitedTargetHash
-    if (Reflect.ownKeys(target).includes($.argument)) {
-      let argument = target
-      ;({ visitedTargetHash, target } = argument)
+    if (typeof key === 'object' && Reflect.ownKeys(key).includes($.argument)) {
+      let argument = key
+      ;({ visitedTargetHash, key } = argument)
     }
 
     if (Reflect.ownKeys(target).includes(key)) return true // check the target of proxy for keys, providing access to them.
@@ -94,38 +132,60 @@ export const proxyHandler = {
     if (visitedTargetHash.has(target)) return false // if already visited then the property was not found on it.
     visitedTargetHash.add(target)
 
-    return target[$.list].some(object =>
-      Reflect.has(
-        {
+    return target[$.list].some(object => {
+      // prevent additional calls when possible.
+      if (object !== target)
+        return Reflect.has(object, {
           [$.argument]: true /** mark object as holding additional arguments */,
           visitedTargetHash,
-          target: object,
-        },
-        key,
-      ),
-    )
+          key,
+        })
+    })
   },
 
   /*
     The get trap is a trap for getting property values. I use find to find the first prototype which contains that property, and I return the value, 
     or call the getter on the appropriate receiver. This is handled by Reflect.get. If no prototype contains the property, I return undefined.
   */
-  get(target, key, proxy /*proxy of target*/) {
+  get(target, key, receiver /*receiver proxy of target, used also as additional argument*/) {
+    if (key == '__proto__') return Reflect.getPrototypeOf(receiver /** in this case it may indicate also a subinstance of proxy */) // special use cases - __proto__ property
     if (key in target) return target[key] // allow access to target's MultipleDelegation Functionalities to get the list of delgations.
 
+    let visitedTargetHash // check if the argument holds additional arguments from previous implementation or only the native `target` argument.
+    if (typeof receiver === 'object' && Reflect.ownKeys(receiver).includes($.argument)) {
+      let argument = receiver
+      ;({ visitedTargetHash, receiver } = argument)
+    }
+
+    visitedTargetHash ||= new Set() // follow visited targets that are of type multiple delegation class
+    if (visitedTargetHash.has(target)) return false // if already visited then the property was not found on it.
+    visitedTargetHash.add(target)
+    if (receiver) visitedTargetHash.add(receiver)
+
     // find the object that has the property (own key or in prototype chain)
-    const foundObject = target[$.list].find(object => {
-      if (object === proxy) return false
-      return Reflect.has(
-        {
+    let value
+    for (let index = 0; index < target[$.list].length; index++) {
+      let object = target[$.list][index]
+      if (visitedTargetHash.has(object)) continue // prevent circular calls
+      if (
+        Reflect.has(object, {
           [$.argument]: true /** mark object as holding additional arguments */,
-          visitedTargetHash: new Set([proxy]), // assign prototypes to skip visiting
-          target: object,
-        },
-        key,
+          visitedTargetHash: new Set([receiver]), // assign prototypes to skip visiting
+          key,
+        })
       )
-    })
-    return foundObject ? foundObject[key] : void 0 // because `undefined` is a global variable and not a reserved word in JS. void simply insures the return of undefined.
+        value = Reflect.get(object, key, {
+          [$.argument]: true /** mark object as holding additional arguments */,
+          visitedTargetHash,
+          receiver,
+        })
+
+      visitedTargetHash.add(object)
+
+      if (value) return value
+    }
+
+    return void 0 // because `undefined` is a global variable and not a reserved word in JS. void simply insures the return of undefined.
   },
 
   /* 
