@@ -27,10 +27,10 @@ export class MultipleDelegation {
     this[$.list] = [...new Set(prototypeList)] // filter duplicate enteries.
   }
 
-  constructor() {
+  constructor(delegationList = []) {
     // this = The target is not meant to be accessable externally through the wrapper proxy.
     let target = this
-    target[$.list] = [] // initialize multiple delegaiton list property.
+    target[$.list] = [...delegationList] // initialize multiple delegaiton list property.
     target[$.target] = target
     let proxy = new Proxy(target, MultipleDelegation.proxyHandler)
     // debugging - when console logging it will mark object as proxy and in inspector debugging too.

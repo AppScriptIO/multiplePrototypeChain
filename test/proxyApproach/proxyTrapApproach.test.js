@@ -115,6 +115,7 @@ suite('MultipleDelegation Proxy Trap Hanlders:', () => {
       })
     })
 
+    //TODO: Add support for `getter` properties. If a getter is retrieved, then executed with the `reciever` (of the get handler) as `this`. Check the native js specification.
     suite('get trap', () => {
       const fixture = { symbol1: Symbol('symbol1'), symbol2: Symbol('symbol2'), key1: 'key1', key2: 'key2' }
       let parent1 = { [fixture.symbol1]: fixture.symbol1, [fixture.key1]: fixture.key1 }
@@ -162,6 +163,17 @@ suite('MultipleDelegation Proxy Trap Hanlders:', () => {
 })
 
 suite('MultipleDelegation API - Multiple Prototype Chain creation', () => {
+  suite('create multiple delegation proxy and lookup properties', () => {
+    let p1 = { label: 'p1', v1: 'v1' },
+      p2 = { label: 'p2', v2: 'v2' }
+
+    let { proxy } = new MultipleDelegation([p1, p2])
+    test('Access property from delegaiton chain', () => {
+      assert(proxy.v1 == 'v1', `• Failed to access "v1" property.`)
+      assert(proxy.v2 == 'v2', `• Failed to access "v2" property.`)
+    })
+  })
+
   suite('Accessing property through getters (prevent infinite getter lookup)', () => {
     let instance = { label: 'instance' },
       parent = { label: 'parent', value: 'value' }
