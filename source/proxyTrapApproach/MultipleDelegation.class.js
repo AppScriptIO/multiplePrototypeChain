@@ -14,7 +14,7 @@ export class MultipleDelegation {
    * Note: this implemenation of trap redefines the purpose of `instanceof` to check for a direct/immediate instances only.
    */
   static [Symbol.hasInstance](instance) {
-    if (typeof instance == 'object' && Boolean(Reflect.ownKeys(instance).includes($.target))) {
+    if (instance /**if not null/undefined*/ && typeof instance == 'object' && Boolean(Reflect.ownKeys(instance).includes($.target))) {
       return Object.getPrototypeOf(instance[$.target]) === this.prototype // get prototype of the actual target not the proxy wrapping it.
     }
   }
@@ -30,7 +30,9 @@ export class MultipleDelegation {
   constructor(delegationList = []) {
     // this = The target is not meant to be accessable externally through the wrapper proxy.
     let target = this
-    target[$.list] = [...delegationList] // initialize multiple delegaiton list property.
+
+    target[$.list] = []
+    target[$.setter](delegationList) // initialize multiple delegaiton list property.
     target[$.target] = target
     let proxy = new Proxy(target, MultipleDelegation.proxyHandler)
     // debugging - when console logging it will mark object as proxy and in inspector debugging too.
@@ -57,8 +59,8 @@ export class MultipleDelegation {
     }
 
     let multipleDelegationProxy = targetObject |> Object.getPrototypeOf // instance of MultipleDelegation class that will be used as the prototype of the target object
-    // add delegation prototypes to multiple delelgation proxy.
-    multipleDelegationProxy[$.target][$.setter](delegationList)
+    delegationList = delegationList.filter(item => item && item !== multipleDelegationProxy) // remove circular delegaiton and null values
+    multipleDelegationProxy[$.target][$.setter](delegationList) // add delegation prototypes to multiple delelgation proxy.
   }
 
   // 🧪 Used for unit tests

@@ -174,6 +174,24 @@ suite('MultipleDelegation API - Multiple Prototype Chain creation', () => {
     })
   })
 
+  suite('Prevent adding circular immediate delegation for existing multiple delegation instance', () => {
+    let p1 = { label: 'p1', v1: 'v1' },
+      p2 = { label: 'p2', v2: 'v2' }
+
+    let instance = Object.create(null)
+    MultipleDelegation.addDelegation({ targetObject: instance, delegationList: [p1] })
+    MultipleDelegation.addDelegation({ targetObject: instance, delegationList: [p2] })
+
+    test('Access property from delegaiton chain', () => {
+      assert(instance.v1 == 'v1', `• Failed to access "v1" property.`)
+      assert(instance.v2 == 'v2', `• Failed to access "v2" property.`)
+    })
+    test('No circular delegaiton should be found', () => {
+      let proxy = Object.getPrototypeOf(instance)
+      proxy[$.target][$.list].every(prototype => prototype !== proxy)
+    })
+  })
+
   suite('Accessing property through getters (prevent infinite getter lookup)', () => {
     let instance = { label: 'instance' },
       parent = { label: 'parent', value: 'value' }
